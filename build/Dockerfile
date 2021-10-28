@@ -19,21 +19,19 @@
 #                                                                                 #
 ###################################################################################
 
-FROM ubuntu:latest
+FROM ubuntu-base:latest
 
 LABEL "com.exadra37.vendor"="Exadra37"
 LABEL com.exadra37.package-name="exadra37-docker-images/dockerize-graphical-user-interface-app"
 LABEL version="0.0.1.0"
 LABEL description="Dockerize any App with a graphical user interface. \
 This allow us to run the Dockerized APP from inside a Docker Container. \
-
 Advantages: \
     * No need to install the APP in our Operating System to try it. \
     * Try the APP with many different setups without be afraid to break our OS. \
     * More secure to run, once we can destroy the container when finished, therefore if is compromised it will not \
        infect the OS in our computer. \
-    * Keep our OS clean and free of bloated APPs, making easy to upgrade it at any time. \
-"
+    * Keep our OS clean and free of bloated APPs, making easy to upgrade it at any time."
 
 # Removes DBUS warning that should be only seen by Developer
 # https://bugs.launchpad.net/ubuntu/+source/at-spi2-core/+bug/1193236
@@ -51,8 +49,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG CONTAINER_USER="${CONTAINER_USER:-dockerize}"
 ARG CONTAINER_UID="${CONTAINER_UID:-2000}"
 ARG CONTAINER_ENTRYPOINT="${CONTAINER_ENTRYPOINT:-'./entrypoint.sh'}"
-ARG CONTAINER_LANG="${CONTAINER_LANG:-'en_GB:en'}"
-ARG CONTAINER_LOCALE="${CONTAINER_LOCALE:-'en_GB.UTF-8'}"
 ARG CONTAINER_SHELL="${CONTAINER_SHELL:-'/usr/bin/zsh'}"
 ARG HOST_SETUP_USER_SHELL_FILE="${HOST_SETUP_USER_SHELL_FILE:-~/.dockerize/setup-user-shell.sh}"
 
@@ -65,7 +61,6 @@ COPY ./setup-user-shell.sh /.container/setup-user-shell.sh
 # DOCKER RUNS ALL SHELL COMANDS WITH: /bin/sh
 RUN apt-get update && \
     apt-get -y upgrade && \
-
     # Installs Required Dependencies...
     #
     # This is the minimal dependencies to be able to run a GUI app from inside a Docker Container.
@@ -82,22 +77,14 @@ RUN apt-get update && \
     apt-get -y install \
         ca-certificates \
         apt-utils \
-        dbus-x11 && \
-
-    # Force installation of missing dependencies
-    apt-get -y -f install && \
-
-    # Localization
-    locale-gen "${CONTAINER_LOCALE}" && \
+        dbus-x11
 
     # Add $CONTAINER_USER
     #
     # If the GUI App being Dockerized needs a Sudo User, please set it in the image that will extend from this one
     #  to Dockerize it.
-    useradd -m -u "${CONTAINER_UID}" -s "${CONTAINER_SHELL}" "${CONTAINER_USER}" && \
+RUN useradd -m -u "${CONTAINER_UID}" -s "${CONTAINER_SHELL}" "${CONTAINER_USER}" && \
     echo "${CONTAINER_USER}:${CONTAINER_USER}" | chpasswd && \
-
-
     # Setup Shell for $CONTAINER_USER
     # If the Shell is not Bash or Sh we need to install it from $HOST_SETUP_USER_SHELL_FILE
     # For ZSH shell a default installation is provided in the script we are invoking...
@@ -112,9 +99,6 @@ RUN apt-get update && \
     rm -rvf /var/lib/apt/lists/*
 
 # MUST BE SET AFTER RUN COMMAND
-ENV LANG "${CONTAINER_LOCALE}"
-ENV LANGUAGE "${CONTAINER_LANG}"
-ENV LC_ALL "${CONTAINER_LOCALE}"
 ENV SHELL "${CONTAINER_SHELL}"
 
 # Use this script to set what you want to happen when starting the container.
