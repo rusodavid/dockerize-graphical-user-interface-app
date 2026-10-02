@@ -17,4 +17,10 @@
 # Execution
 ########################################################################################################################
 
-    zsh
+    # Run the given command, or the user Shell when none is given. Using exec so that signals reach the process.
+    if [ "${#}" -gt 0 ]
+        then
+            exec "${@}"
+    fi
+
+    exec "${SHELL:-/bin/bash}"

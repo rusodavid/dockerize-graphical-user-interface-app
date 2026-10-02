@@ -38,7 +38,10 @@
 
     container_shell="${2?}"
 
-    host_setup_user_shell_file="${3}"
+    # Path inside the container (copied into the image by an extending Dockerfile) of a custom setup script.
+    host_setup_user_shell_file="${3:-/.container/custom-setup-user-shell.sh}"
+
+    OH_MY_ZSH_COMMIT="${OH_MY_ZSH_COMMIT:-4d4cfc287e9d887b81242c0e431b5f49f9cec5c1}"
 
 
 ########################################################################################################################
@@ -54,15 +57,23 @@
         then
             bash "${host_setup_user_shell_file}" "${container_user}" "${container_shell}"
 
-    # If setup user shell file is found in the given path and the Shell to setup is ZSH we will install ZSH with awesome
+    # If setup user shell file is not found in the given path and the Shell to setup is ZSH we will install ZSH with awesome
     #  Oh My Zsh package to increase the Shell functionality and productivity, with the added benefit of coloured output.
     elif [ 'zsh' == "${container_shell##*/}" ]
         then
-            # Curl and Git are dependencies necessary to install Oh My Zsh
-            apt-get -y install \
+            # Git is needed to fetch Oh My Zsh. Ca-certificates are already installed by the Dockerfile.
+            apt-get install -y --no-install-recommends \
                 zsh \
-                curl \
                 git && \
-            su "${container_user}" -c 'bash -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"' &&
-            chsh -s "/usr/bin/zsh" "${container_user}"
+            # Fetching a pinned commit, instead of `curl | sh` the installer from master, so that the build is
+            #  reproducible and we don't execute whatever is in master at build time.
+            su "${container_user}" -c "
+                set -e
+                git init -q ~/.oh-my-zsh
+                cd ~/.oh-my-zsh
+                git remote add origin https://github.com/ohmyzsh/ohmyzsh.git
+                git fetch -q --depth 1 origin ${OH_MY_ZSH_COMMIT}
+                git checkout -q FETCH_HEAD
+                cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
+            "
     fi
